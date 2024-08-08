@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -152,3 +153,25 @@ class TestAssetsAPIView(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(status.HTTP_200_OK, response.status_code)
         self.assertEqual({'k': 'v'}, response.json())
+
+
+class TestFilePathAPIView(TestCase):
+    def setUp(self) -> None:
+        self.url = reverse('test_file_upload')
+
+    @patch('django.core.files.storage.default_storage.save')
+    def test_post_new_file(self, mocked_storage):
+        mocked_storage.return_value = 'test.py'
+        file_content = b'Test File Content'
+        file_obj = SimpleUploadedFile('test.py', file_content, content_type='text/plain')
+
+        response = self.client.post(self.url, {'test_file': file_obj, "upload_dir": "some/test/path"},
+                                    format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(mocked_storage.called)
+        self.assertEqual(TestFilePath.objects.filter(path="some/test/path/test.py").count(), 1)
+
+    def test_post_invalid_request(self):
+        response = self.client.post(self.url, {}, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

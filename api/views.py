@@ -1,10 +1,12 @@
 from rest_framework import status
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models import TestRunRequest
-from api.serializers import TestRunRequestSerializer, TestRunRequestItemSerializer
+from api.serializers import TestRunRequestSerializer, TestRunRequestItemSerializer, TestFilePathSerializer, \
+    TestFileUploadSerializer
 from api.tasks import execute_test_run_request
 from api.usecases import get_assets
 
@@ -28,3 +30,16 @@ class AssetsAPIView(APIView):
 
     def get(self, request):
         return Response(status=status.HTTP_200_OK, data=get_assets())
+
+
+class UploadTestFilesAPIView(APIView):
+    serializer_class = TestFileUploadSerializer
+    parser_classes = (MultiPartParser,)
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        serializer.save()
+        return Response(status=status.HTTP_201_CREATED)

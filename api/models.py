@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 from django.db import models
 
@@ -17,6 +19,10 @@ class TestFilePath(Timestampable):
 
     def __str__(self):
         return self.path
+
+    @property
+    def upload_dir(self) -> str:
+        return os.path.dirname(self.path)
 
 
 class TestEnvironment(Timestampable):
